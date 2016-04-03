@@ -7,9 +7,15 @@
 //
 
 #import "AppDelegate.h"
+#import "XXTabBarController.h"
+#import "AuthViewController.h"
+#import "accountTool.h"
+#import "CZRootTool.h"
+#import "UIImageView+WebCache.h"
 
+#import <AVFoundation/AVFoundation.h>
 @interface AppDelegate ()
-
+@property(nonatomic,strong)AVAudioPlayer *player;
 @end
 
 @implementation AppDelegate
@@ -17,17 +23,71 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+    
+    
+    // 注册通知
+    UIUserNotificationSettings *setting=[UIUserNotificationSettings settingsForTypes:UIUserNotificationTypeBadge categories:nil];
+    [application registerUserNotificationSettings:setting];
+    
+    
+    self.window=[[UIWindow alloc]initWithFrame:[[UIScreen mainScreen]bounds]];
+    [self.window makeKeyAndVisible];
+//    
+//    XXTabBarController *tabBar=[XXTabBarController new];
+//    self.window.rootViewController=tabBar;
+//    判断帐号是否为空
+    if ([accountTool account]) {
+        [CZRootTool chooseRootViewController:self.window];
+       
+        
+
+    }else
+    {
+        AuthViewController *auth=[[AuthViewController alloc]init];
+        self.window.rootViewController=auth;
+    
+    }
+    
+   
     return YES;
 }
+//内存警告
+-(void)applicationDidReceiveMemoryWarning:(UIApplication *)application
+{
 
-- (void)applicationWillResignActive:(UIApplication *)application {
-    // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-    // Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game.
+//    停止所有下载、
+    [[SDWebImageManager sharedManager]cancelAll];
+//    清除缓存
+    [[SDWebImageManager sharedManager].imageCache clearMemory];
+
+
 }
-
+//失去焦点
+- (void)applicationWillResignActive:(UIApplication *)application {
+   
+    NSURL *url=[[NSBundle mainBundle] URLForResource:@"silence.mp3" withExtension:nil];
+    AVAudioPlayer *player=[[AVAudioPlayer alloc]initWithContentsOfURL:url error:nil];
+    [player prepareToPlay];
+    //  无限播放
+    player.numberOfLoops=-1;
+    
+    [player play];
+    
+    
+    _player=player;
+}
+//程序进入后台调用
 - (void)applicationDidEnterBackground:(UIApplication *)application {
-    // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-    // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+//  开启一个后台任务
+    UIBackgroundTaskIdentifier ID=[application beginBackgroundTaskWithExpirationHandler:^{
+//       后台任务结束调用
+        [application endBackgroundTask:ID];
+    }];
+
+//    提高后台优先级 欺骗苹果 我们是后台播放器
+    
+//    苹果会检测程序是否后台播放
+//    微博：在程序即将失去焦点的时候播放音乐 静音音乐
 }
 
 - (void)applicationWillEnterForeground:(UIApplication *)application {
